@@ -28,7 +28,7 @@ const color = Plot.scale({
 
 <div class="grid grid-cols-4">
   <div class="card">
-    <h2>United States 🇺🇸</h2>
+    <h2>EUROPE 🇺🇸</h2>
     <span class="big">${launches.filter((d) => d.stateId === "US").length.toLocaleString("en-US")}</span>
   </div>
   <div class="card">
