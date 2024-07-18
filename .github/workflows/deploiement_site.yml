@@ -22,7 +22,6 @@ jobs:
       - name: Add DuckDB to PATH
         run: |
           echo "export PATH=\$PATH:$(pwd)" >> $GITHUB_ENV
-          duckcb -version
 
       - name: Setup node
         uses: actions/setup-node@v4
