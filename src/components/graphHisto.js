@@ -1,4 +1,7 @@
 import * as echarts from "npm:echarts";
+console.log("la");
+import {extractColumns} from "./extractColumns.js";
+
 const listColor =   [ '#37A2FF', '#FFBF00','#80FFA5','#FF0087','#00DDFF'];
 const listRgbColor = [
                         'rgb(55, 162, 255)', 'rgb(0,230,215)',
@@ -7,23 +10,6 @@ const listRgbColor = [
                         'rgb(255, 0, 135)', 'rgb(135, 0, 157)', 
                        'rgb(0, 221, 255)',  'rgb(77, 119, 255)',
                     ]
-
-// Fonction pour extraire toutes les colonnes d'un DataFrame
-function extractColumns(dataFrame) {
-    const columns = {};
-    for (const field of dataFrame.schema.fields) {
-      columns[field.name] = [];
-    }
-    for (const batch of dataFrame.batches) {
-      for (const field of dataFrame.schema.fields) {
-        const tempColumn = batch.getChild(field.name);
-        for (let i = 0; i < tempColumn.length; i++) {
-          columns[field.name].push(tempColumn.get(i));
-        }
-      }
-    }
-    return columns;
-  }
   
   // Fonction pour créer le graphique ECharts
 export  function createOptionsEChartsFromData(data, width, colonneX,titleChart="") {

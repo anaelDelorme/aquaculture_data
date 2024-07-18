@@ -3,16 +3,43 @@ theme: dashboard
 title: Europe
 toc: false
 ---
-
+```js
+import {extractColumns} from "./components/extractColumns.js";
+```
 # Rocket launches 🚀
 
 <!-- Load and transform the data -->
 
 ```js
 const launches = FileAttachment("data/launches.csv").csv({typed: true});
+const data_europe = FileAttachment("data/detailaq2a_eur.parquet").parquet();
+const allData = DuckDBClient.of({data_europe});
 ```
 
-<!-- A shared color scale for consistency, sorted by the number of launches -->
+```js
+const col_geo = await allData.sql`SELECT DISTINCT geo FROM data_europe`;
+const col_geo_extract = extractColumns(col_geo);
+
+const col_species = await allData.sql`SELECT DISTINCT species FROM data_europe`;
+const col_species_extract = extractColumns(col_species);
+
+const col_time = await allData.sql`SELECT DISTINCT TIME_PERIOD FROM data_europe`;
+const col_time_extract = extractColumns(col_time);
+```           
+
+```js
+const choix_list_geo = view(Inputs.select(col_geo_extract["geo"].sort(), { label: "Liste des pays" }));
+const choix_list_species = view(Inputs.select(col_species_extract["species"].sort(), { label: "Liste des espèces" }));
+function convertirEnVarchar(tableau) {
+    return tableau.map((valeur) => valeur.toString());
+};
+const annee_string = convertirEnVarchar(col_time_extract["TIME_PERIOD"]).sort();
+const choix_list_anneee = view(Inputs.select(annee_string, { label: "Choix de l'année" }));
+
+
+
+Inputs.table(data_europe)
+```
 
 ```js
 const color = Plot.scale({

@@ -2,7 +2,7 @@
 toc: false
 ---
 ```js
-import {createOptionsEChartsFromData} from "./components/extractColumn.js";
+import {createOptionsEChartsFromData} from "./components/graphHisto.js";
 function createEChartsFromData2(width, option) {
     // Initialiser le graphique ECharts
     const container = display(html`<div style="width: ${width}px; height:400px;"></div>`);
@@ -38,7 +38,7 @@ const data_fr_complet = db_data_fr.sql`SELECT * FROM data_fr
 ```
 
 ```js
-console.log('LA',data_europe_complet);
+//console.log('LA',data_europe_complet);
 const optionEUR = createOptionsEChartsFromData(data_europe_complet, width, "TIME_PERIOD");
 const optionFR = createOptionsEChartsFromData(data_fr_complet, width, "TIME_PERIOD");
 ```
