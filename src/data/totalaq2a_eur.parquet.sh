@@ -10,7 +10,7 @@ if [ ! -f "$TMPDIR/$CODE.csv" ]; then
 fi
 
 # Generate a Parquet file using DuckDB.
-duckdb :memory: << EOF
+./duckdb :memory: << EOF
 COPY (
   WITH aggregated_data AS (
   SELECT species, TIME_PERIOD, sum(OBS_VALUE) as volume_total
