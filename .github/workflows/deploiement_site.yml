@@ -21,7 +21,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-            cd formation
             npm ci
 
       - name: Build
