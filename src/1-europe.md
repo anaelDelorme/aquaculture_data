@@ -6,40 +6,55 @@ toc: false
 ```js
 import {extractColumns} from "./components/extractColumns.js";
 ```
-# Rocket launches 🚀
+# Production aquacole européenne 🚀
 
 <!-- Load and transform the data -->
 
 ```js
 const launches = FileAttachment("data/launches.csv").csv({typed: true});
+const list_geo = FileAttachment("data/liste_geo.parquet").parquet();
+const list_annee = FileAttachment("data/liste_annee.parquet").parquet();
+const list_espece = FileAttachment("data/liste_espece.parquet").parquet();
+
+```  
+```js
 const data_europe = FileAttachment("data/detailaq2a_eur.parquet").parquet();
 const allData = DuckDBClient.of({data_europe});
-```
-
+``` 
 ```js
-const col_geo = await allData.sql`SELECT DISTINCT geo FROM data_europe`;
-const col_geo_extract = extractColumns(col_geo);
+const list_geo_extract = extractColumns(list_geo)["geo"].sort();
+const choix_list_geo = view(Inputs.select(list_geo_extract, { label: "Liste des pays", value: "EU27_2020"}));
 
-const col_species = await allData.sql`SELECT DISTINCT species FROM data_europe`;
-const col_species_extract = extractColumns(col_species);
+const list_espece_extract = extractColumns(list_espece)["species"].sort();
+const choix_list_espece = view(Inputs.select(list_espece_extract, { label: "Liste des espèces", value: "F00"}));
 
-const col_time = await allData.sql`SELECT DISTINCT TIME_PERIOD FROM data_europe`;
-const col_time_extract = extractColumns(col_time);
-```           
-
-```js
-const choix_list_geo = view(Inputs.select(col_geo_extract["geo"].sort(), { label: "Liste des pays" }));
-const choix_list_species = view(Inputs.select(col_species_extract["species"].sort(), { label: "Liste des espèces" }));
 function convertirEnVarchar(tableau) {
     return tableau.map((valeur) => valeur.toString());
 };
-const annee_string = convertirEnVarchar(col_time_extract["TIME_PERIOD"]).sort();
-const choix_list_anneee = view(Inputs.select(annee_string, { label: "Choix de l'année" }));
-
-
-
-Inputs.table(data_europe)
+const list_annee_extract = convertirEnVarchar(extractColumns(list_annee)["TIME_PERIOD"].sort());
+const dateJour = new Date();
+const annee_precedente   = (dateJour.getUTCFullYear() - 2).toString(); 
+const choix_list_annee = view(Inputs.select(list_annee_extract, { label: "Choix de l'année", value: annee_precedente}));
 ```
+
+```js
+const data_europe_complet = allData.query(`SELECT sum(OBS_VALUE) as tot, unit
+                                FROM data_europe
+                                WHERE species = ?
+                                  AND geo = ?
+                                  AND TIME_PERIOD = ?
+                                  AND aquaenv = 'TOTAL'
+                                  AND fishreg = '0'
+                                GROUP BY unit`, [choix_list_espece, choix_list_geo, choix_list_annee]);
+```
+```js
+const valeur_tot = extractColumns(data_europe_complet)["tot"][0].toLocaleString("fr-FR").toString() + " " + extractColumns(data_europe_complet)["unit"][0];
+
+const pu_tot = extractColumns(data_europe_complet)["tot"][1].toLocaleString("fr-FR").toString() + " " + extractColumns(data_europe_complet)["unit"][1];
+
+const volume_tot = extractColumns(data_europe_complet)["tot"][2].toLocaleString("fr-FR").toString() + " " + extractColumns(data_europe_complet)["unit"][2];
+```
+
 
 ```js
 const color = Plot.scale({
@@ -53,22 +68,23 @@ const color = Plot.scale({
 
 <!-- Cards with big numbers -->
 
-<div class="grid grid-cols-4">
+<div class="grid grid-cols-3">
   <div class="card">
-    <h2>EUROPE 🇺🇸</h2>
-    <span class="big">${launches.filter((d) => d.stateId === "US").length.toLocaleString("en-US")}</span>
+
+## Volume 🛒
+    
+  <span class="big">${volume_tot}</span>
   </div>
   <div class="card">
-    <h2>Russia 🇷🇺 <span class="muted">/ Soviet Union</span></h2>
-    <span class="big">${launches.filter((d) => d.stateId === "SU" || d.stateId === "RU").length.toLocaleString("en-US")}</span>
+
+## Valeur  💰
+  <span class="big">${valeur_tot}</span>
   </div>
   <div class="card">
-    <h2>China 🇨🇳</h2>
-    <span class="big">${launches.filter((d) => d.stateId === "CN").length.toLocaleString("en-US")}</span>
-  </div>
-  <div class="card">
-    <h2>Other</h2>
-    <span class="big">${launches.filter((d) => d.stateId !== "US" && d.stateId !== "SU" && d.stateId !== "RU" && d.stateId !== "CN").length.toLocaleString("en-US")}</span>
+
+## Prix moyen 🏷️
+    
+  <span class="big">${pu_tot}</span>
   </div>
 </div>
 
