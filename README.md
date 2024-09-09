@@ -1,5 +1,22 @@
 # Aquaculture
 
+
+## Installation
+
+To install dependencies, run :
+
+```
+`npm install`
+```
+
+This project uses Duckdb. To install (in Codespaces), run :
+
+```
+wget https://github.com/duckdb/duckdb/releases/download/v1.0.0/duckdb_cli-linux-amd64.zip
+unzip duckdb_cli-linux-amd64.zip
+chmod +x duckdb
+``` 
+
 This is an [Observable Framework](https://observablehq.com/framework) project. To start the local preview server, run:
 
 ```

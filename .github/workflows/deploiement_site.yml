@@ -3,6 +3,8 @@ on:
   workflow_dispatch:
   push:
     branches: ["main"]
+  schedule:
+    - cron: "0 0 * * *"  # Tous les jours à minuit
 permissions:
   contents: write
 jobs:
@@ -32,10 +34,19 @@ jobs:
       - name: Install dependencies
         run: |
             npm ci
-
       - name: Build
         run: |
             npm run build
+
+            - name: Save last update time
+            run: echo "LAST_UPDATE=$(date -u '+%d-%m-%Y %H:%M:%S UTC')" >> $GITHUB_ENV
+      - name: Insert last update time into index.md
+        run: |
+            cp original_index.md index.md
+            echo "" >> index.md
+            echo "<footer>" >> index.md
+            echo "Dernière mise à jour : ${{ env.LAST_UPDATE }}" >> index.md
+            echo "</footer>" >> index.md
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
