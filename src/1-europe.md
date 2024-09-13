@@ -11,11 +11,10 @@ import {extractColumns} from "./components/extractColumns.js";
 <!-- Load and transform the data -->
 
 ```js
-const launches = FileAttachment("data/launches.csv").csv({typed: true});
+const volume_tot_init = 0;
 const list_geo = FileAttachment("data/liste_geo.parquet").parquet();
 const list_annee = FileAttachment("data/liste_annee.parquet").parquet();
 const list_espece = FileAttachment("data/liste_espece.parquet").parquet();
-
 ```  
 ```js
 const data_europe = FileAttachment("data/detailaq2a_eur.parquet").parquet();
@@ -93,26 +92,41 @@ const data_europe_complet = allData.query(`SELECT sum(OBS_VALUE) as tot, unit
                                   AND TIME_PERIOD = ?
                                   AND aquaenv = 'TOTAL'
                                   AND fishreg = '0'
+                                  AND aquameth = 'TOTAL'
                                 GROUP BY unit`, [choix_list_espece.value, choix_list_geo.value, choix_list_annee]);
 ```
 ```js
-const valeur_tot = extractColumns(data_europe_complet)["tot"][0].toLocaleString("fr-FR").toString() + " " + extractColumns(data_europe_complet)["unit"][0];
+const columns = extractColumns(data_europe_complet);
+const isDataEmpty = columns["tot"].length === 0;
 
-const pu_tot = extractColumns(data_europe_complet)["tot"][1].toLocaleString("fr-FR").toString() + " " + extractColumns(data_europe_complet)["unit"][1];
+const formatValue = (index) => {
+  if (isDataEmpty) return "0";
+  
+  let unit = columns["unit"][index];
+  let valeur = columns["tot"][index];
+  if (unit === "TLW"){
+    unit = "Tonnes";
+    valeur = parseFloat(valeur).toFixed(1);
+  };
+  if (unit === "EUR"){
+    unit = "€";
+    valeur = parseFloat(valeur).toFixed(1);
+  };
+  if (unit === "EUR_T"){
+    unit = "€/kg";
+    valeur = parseFloat(valeur/1000).toFixed(2);
+  }; 
 
-const volume_tot = extractColumns(data_europe_complet)["tot"][2].toLocaleString("fr-FR").toString() + " " + extractColumns(data_europe_complet)["unit"][2];
+  valeur = parseFloat(valeur).toLocaleString("fr-FR");
+
+  return valeur + " " + unit;
+};
+
+const valeur_tot = formatValue(0);
+const pu_tot = formatValue(1);
+const volume_tot = formatValue(2);
 ```
 
-
-```js
-const color = Plot.scale({
-  color: {
-    type: "categorical",
-    domain: d3.groupSort(launches, (D) => -D.length, (d) => d.state).filter((d) => d !== "Other"),
-    unknown: "var(--theme-foreground-muted)"
-  }
-});
-```
 
 <!-- Cards with big numbers -->
 
@@ -136,55 +150,3 @@ const color = Plot.scale({
   </div>
 </div>
 
-<!-- Plot of launch history -->
-
-```js
-function launchTimeline(data, {width} = {}) {
-  return Plot.plot({
-    title: "Launches over the years",
-    width,
-    height: 300,
-    y: {grid: true, label: "Launches"},
-    color: {...color, legend: true},
-    marks: [
-      Plot.rectY(data, Plot.binX({y: "count"}, {x: "date", fill: "state", interval: "year", tip: true})),
-      Plot.ruleY([0])
-    ]
-  });
-}
-```
-
-<div class="grid grid-cols-1">
-  <div class="card">
-    ${resize((width) => launchTimeline(launches, {width}))}
-  </div>
-</div>
-
-<!-- Plot of launch vehicles -->
-
-```js
-function vehicleChart(data, {width}) {
-  return Plot.plot({
-    title: "Popular launch vehicles",
-    width,
-    height: 300,
-    marginTop: 0,
-    marginLeft: 50,
-    x: {grid: true, label: "Launches"},
-    y: {label: null},
-    color: {...color, legend: true},
-    marks: [
-      Plot.rectX(data, Plot.groupY({x: "count"}, {y: "family", fill: "state", tip: true, sort: {y: "-x"}})),
-      Plot.ruleX([0])
-    ]
-  });
-}
-```
-
-<div class="grid grid-cols-1">
-  <div class="card">
-    ${resize((width) => vehicleChart(launches, {width}))}
-  </div>
-</div>
-
-Data: Jonathan C. McDowell, [General Catalog of Artificial Space Objects](https://planet4589.org/space/gcat)
