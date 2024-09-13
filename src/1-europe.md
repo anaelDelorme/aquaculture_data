@@ -97,10 +97,10 @@ const data_europe_complet = allData.query(`SELECT sum(OBS_VALUE) as tot, unit
 ```
 ```js
 const columns = extractColumns(data_europe_complet);
-const isDataEmpty = columns["tot"].length === 0;
+const isDataEmpty = columns["tot"].length === 0 || columns["tot"].every(value => value === 0 || value === null);
 
 const formatValue = (index) => {
-  if (isDataEmpty) return "0";
+  if (isDataEmpty) return "--";
   
   let unit = columns["unit"][index];
   let valeur = columns["tot"][index];
