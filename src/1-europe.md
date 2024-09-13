@@ -22,11 +22,58 @@ const data_europe = FileAttachment("data/detailaq2a_eur.parquet").parquet();
 const allData = DuckDBClient.of({data_europe});
 ``` 
 ```js
-const list_geo_extract = extractColumns(list_geo)["geo"].sort();
-const choix_list_geo = view(Inputs.select(list_geo_extract, { label: "Liste des pays", value: "EU27_2020"}));
+const list_code_geo_dans_data = allData.sql`SELECT DISTINCT geo FROM data_europe`;
+const list_code_espece_dans_data = allData.sql`SELECT DISTINCT species FROM data_europe`;
+``` 
+```js
+const tab_list_code_geo_dans_data = extractColumns(list_code_geo_dans_data);
+const tab_list_code_espece_dans_data = extractColumns(list_code_espece_dans_data);
+```
+```js
+const list_geo_extract = extractColumns(list_geo);
+const codes_geo = list_geo_extract["CODE"];
+const labels_geo = list_geo_extract["Label - French"];
+const geoOptions = codes_geo
+.map((code, index) => ({
+  value: code,
+  label: `${code} - ${labels_geo[index]}`
+}))
+.filter(item => tab_list_code_geo_dans_data["geo"].includes(item.value))
+.sort((a, b) => {
+    const aStartsWithEU = a.value.startsWith("EU");
+    const bStartsWithEU = b.value.startsWith("EU");
 
-const list_espece_extract = extractColumns(list_espece)["species"].sort();
-const choix_list_espece = view(Inputs.select(list_espece_extract, { label: "Liste des espèces", value: "F00"}));
+    // Place 'EU' codes first
+    if (aStartsWithEU && !bStartsWithEU) return -1;
+    if (!aStartsWithEU && bStartsWithEU) return 1;
+
+    // If both are the same type (both EU or both not EU), sort alphabetically
+    return a.value.localeCompare(b.value);
+
+  });
+const choix_list_geo = view(Inputs.select(geoOptions, { label: "Liste des pays", format: d => d.label }));
+
+const list_espece_extract = extractColumns(list_espece);
+const codes_espece = list_espece_extract["CODE"];
+const labels_espece = list_espece_extract["Label - French"];
+const especeOptions = codes_espece
+.map((code, index) => ({
+  value: code,
+  label: `${code} - ${labels_espece[index]}`
+}))
+.filter(item => tab_list_code_espece_dans_data["species"].includes(item.value)).sort((a, b) => {
+    const regexFNumber = /^F\d/;
+    const aStartsWithFNumber = regexFNumber.test(a.value);
+    const bStartsWithFNumber = regexFNumber.test(b.value);
+
+    // Place codes starting with 'F' followed by a number first
+    if (aStartsWithFNumber && !bStartsWithFNumber) return -1;
+    if (!aStartsWithFNumber && bStartsWithFNumber) return 1;
+
+    // If both are the same type (both F followed by a number or neither), sort alphabetically
+    return a.value.localeCompare(b.value);
+  });
+const choix_list_espece = view(Inputs.select(especeOptions, { label: "Liste des espèces", format: d => d.label }));
 
 function convertirEnVarchar(tableau) {
     return tableau.map((valeur) => valeur.toString());
@@ -37,6 +84,7 @@ const annee_precedente   = (dateJour.getUTCFullYear() - 2).toString();
 const choix_list_annee = view(Inputs.select(list_annee_extract, { label: "Choix de l'année", value: annee_precedente}));
 ```
 
+
 ```js
 const data_europe_complet = allData.query(`SELECT sum(OBS_VALUE) as tot, unit
                                 FROM data_europe
@@ -45,7 +93,7 @@ const data_europe_complet = allData.query(`SELECT sum(OBS_VALUE) as tot, unit
                                   AND TIME_PERIOD = ?
                                   AND aquaenv = 'TOTAL'
                                   AND fishreg = '0'
-                                GROUP BY unit`, [choix_list_espece, choix_list_geo, choix_list_annee]);
+                                GROUP BY unit`, [choix_list_espece.value, choix_list_geo.value, choix_list_annee]);
 ```
 ```js
 const valeur_tot = extractColumns(data_europe_complet)["tot"][0].toLocaleString("fr-FR").toString() + " " + extractColumns(data_europe_complet)["unit"][0];
