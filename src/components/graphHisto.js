@@ -1,5 +1,4 @@
 import * as echarts from "npm:echarts";
-console.log("la");
 import {extractColumns} from "./extractColumns.js";
 
 const listColor =   [ '#37A2FF', '#FFBF00','#80FFA5','#FF0087','#00DDFF'];
@@ -13,6 +12,7 @@ const listRgbColor = [
   
   // Fonction pour créer le graphique ECharts
 export  function createOptionsEChartsFromData(data, width, colonneX,titleChart="") {
+  
     const columns = extractColumns(data);
     //console.log("columns: ",columns);
     const colX = columns[colonneX];
@@ -56,7 +56,7 @@ export  function createOptionsEChartsFromData(data, width, colonneX,titleChart="
         axisPointer: {
           type: 'cross',
           label: {
-            backgroundColor: '#6a7985'
+            backgroundColor: '#206095'
           }
         },
         formatter: function (params) {

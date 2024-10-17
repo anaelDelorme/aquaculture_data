@@ -1,5 +1,13 @@
 ---
+theme: dashboard
 toc: false
+sql:
+  data_europe: ./data/totalaq2a_eur.parquet
+  data_fr: ./data/totalaq2a_fr.parquet
+  data_europe_old: ./data/totalaq_q_eur.parquet
+  data_fr_old: ./data/totalaq_q_fr.parquet
+  data_europe_oldest: ./data/totalaq_qh_eur.parquet
+  data_fr_oldest: ./data/totalaq_qh_fr.parquet
 ---
 ```js
 import {createOptionsEChartsFromData} from "./components/graphHisto.js";
@@ -11,30 +19,17 @@ function createEChartsFromData2(width, option) {
     return container;
 }
 ```
-
-```js
-//const data_europe = FileAttachment("data/fishaq2a.parquet").parquet();
-const data_europe = FileAttachment("data/totalaq2a_eur.parquet").parquet();
-const data_fr = FileAttachment("data/totalaq2a_fr.parquet").parquet();
-const data_europe_old = FileAttachment("data/totalaq_q_eur.parquet").parquet();
-const data_fr_old = FileAttachment("data/totalaq_q_fr.parquet").parquet();
-const data_europe_oldest = FileAttachment("data/totalaq_qh_eur.parquet").parquet();
-const data_fr_oldest = FileAttachment("data/totalaq_qh_fr.parquet").parquet();
-
-
-const db_data_europe = DuckDBClient.of({data_europe, data_europe_old, data_europe_oldest});
-const db_data_fr = DuckDBClient.of({data_fr, data_fr_old, data_fr_oldest});
-
+```sql id=data_europe_complet
+SELECT * FROM data_europe 
+UNION ALL SELECT * FROM data_europe_old 
+UNION ALL SELECT * FROM data_europe_oldest
+ORDER BY TIME_PERIOD
 ```
-```js
-const data_europe_complet = db_data_europe.sql`SELECT * FROM data_europe 
-                                          UNION ALL SELECT * FROM data_europe_old 
-                                          UNION ALL SELECT * FROM data_europe_oldest
-                                          ORDER BY TIME_PERIOD`;
-const data_fr_complet = db_data_fr.sql`SELECT * FROM data_fr 
-                                          UNION ALL SELECT * FROM data_fr_old 
-                                          UNION ALL SELECT * FROM data_fr_oldest
-                                          ORDER BY TIME_PERIOD`;
+```sql id=data_fr_complet
+SELECT * FROM data_fr 
+UNION ALL SELECT * FROM data_fr_old 
+UNION ALL SELECT * FROM data_fr_oldest
+ORDER BY TIME_PERIOD
 ```
 
 ```js
