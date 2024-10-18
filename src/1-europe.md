@@ -146,7 +146,7 @@ function fc_unit_choix(type) {
   switch (type) {
     case 'Volume':
       unit = 'TLW';
-      titre = "Volume en milliers de tonnes équivalent poids vif";
+      titre = "Volume en milliers de tonnes";
       break;
     case 'Valeur':
       unit = 'EUR';
@@ -158,14 +158,13 @@ function fc_unit_choix(type) {
       break;
     default:
       unit = 'TLW';
-      titre = "Volume en tonnes équivalent poids vif";
+      titre = "Volume en milliers de tonnes ";
   }
   return [unit, titre];
 } 
 const [unit_choix, titre_choix] = fc_unit_choix(choix_variable);
 ```
 <!--Carte de la production par pays-->
-
 ```sql id=data_europe_espece 
 SELECT DISTINCT 
   al.geo, 
@@ -186,8 +185,6 @@ WHERE
 GROUP BY 
   unit, al.geo, da."Label - French"
 ``` 
-
-
 
 ```js
 const fond_carte_europe = FileAttachment("data/europe.topojson").json();
@@ -215,7 +212,7 @@ pays.features.forEach(feature => {
   if (lng && lat) {
     centroids.set(id, [lng, lat]);
   } else {
-    console.log(`Centroid not found for ${id}`);
+    display(`Centroid not found for ${id}`);
   }
 });
 ```
@@ -224,43 +221,114 @@ pays.features.forEach(feature => {
 
 ```js
 const codeMapping = {
-  "EL":"GR"
+  "EL":"GR",
+  "UK":"GB",
+  "GE":"DE"
 };
+// display(transformedData);
 
 // Remplacez les codes dans transformedData avec ceux de la carte
 const correctedData = transformedData.map(d => ({
   ...d,
   geo: codeMapping[d.geo] || d.geo // Utilise le code corrigé ou laisse tel quel
 }));
+// display(correctedData);
 
-const filteredData = correctedData.filter(d => d.unit === unit_choix);
+const filteredData = correctedData.filter(d => d.unit === unit_choix).filter(d => d.tot > 0);
+//display(filteredData);
 
 ```
 
 ```js
-const radius = d3.scaleSqrt([0, d3.max(filteredData, d => d.tot)], [3, 40]);
+//display(filteredData);
+//display(filteredData);
+function createPlot_carte(width){
+
+// Ajuster la taille du graphique en fonction de la largeur de l'écran
+const adjustedWidth = Math.max(300, width); // Limite la largeur entre 300px et 600px pour les petits écrans
+const adjustedHeight = width * 0.8; // Hauteur proportionnelle, réduite pour les petits écrans
+
+// Réduire le rayon pour les petits écrans
+const radius = d3.scaleSqrt([0, d3.max(filteredData, d => d.tot)], [1, adjustedWidth * 0.1]); // Ajuste la plage du rayon
 
 const plot_carte = Plot.plot({
-    width,
-    height: width * 0.67,
+    width: adjustedWidth,
+    height: adjustedHeight,
     projection: {
-      type: "azimuthal-equidistant",
-      domain: pays
+        type: "azimuthal-equidistant",
+        domain: pays
     },
-  r: { range: [0, 40] },
-  marks: [
-  Plot.geo(pays, {fill: "currentColor", fillOpacity: 0.4, stroke: "var(--theme-background-alt)"}),
-Plot.dot(filteredData, {
-      x: d => centroids.get(d.geo)[0], 
-      y: d => centroids.get(d.geo)[1], 
-      r: d => radius(d.tot), 
-      fill: "#206095", 
-      stroke: "#ccc",
-      title: d => d.label
-    })
-  ]
-})
+    r: { range: [0, 20] }, // Limite le rayon max à 20 pour les petits écrans
+    marks: [
+        Plot.geo(pays, {fill: "currentColor", fillOpacity: 0.4, stroke: "var(--theme-background-alt)"}),
+        Plot.dot(filteredData, {
+            x: d => centroids.get(d.geo)[0], 
+            y: d => centroids.get(d.geo)[1], 
+            r: d => radius(d.tot), 
+            fill: "#206095", 
+            stroke: "#ccc",
+            title: d => {
+                // Si d.unit est "EUR_T", afficher "€/kg", sinon ajouter "k" devant d.unit
+                const unit_affiche = d.unit === "EUR_T" ? "€/kg" : "k" + d.unit;
+
+                // Formater d.tot avec des séparateurs de milliers
+                const formattedTot = d.tot.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                
+                // Formater le texte pour l'info-bulle
+                return d.label + " : " + formattedTot + " " + unit_affiche;
+            }
+        })
+    ]
+});
+return plot_carte;
+}
 ```
+
+```js
+function createChoroCarte(width) {
+    // Ajuster la taille du graphique en fonction de la largeur de l'écran
+    const adjustedWidth = Math.max(300, width); // Limite la largeur entre 300px et 600px pour les petits écrans
+    const adjustedHeight = width * 0.8; // Hauteur proportionnelle, réduite pour les petits écrans
+
+    // Créer une échelle de couleur pour les prix
+const colorScale = d3.scaleSequential(d3.interpolateCividis)
+  .domain([0, d3.max(filteredData, d => d.tot)]);
+//display(filteredData);
+    const plot_carte = Plot.plot({
+        width: adjustedWidth,
+        height: adjustedHeight,
+        projection: {
+            type: "azimuthal-equidistant",
+            domain: pays
+        },
+        color: {
+            type: "quantize",
+            n: 9,
+            domain: [0, d3.max(filteredData, d => d.tot)], // Définit le domaine basé sur les valeurs de 'tot'
+            scheme: "cividis",
+            label: "Prix de vente (€/kg)",
+            legend: true // Ajoute la légende
+        },
+        marks: [
+            Plot.geo(pays, {
+                fill: d => {
+                    const matchingData = filteredData.find(data => data.geo === d.id); // Utilise d.id pour faire correspondre avec filteredData
+                    return matchingData ? colorScale(matchingData.tot) : "gainsboro"; // Couleur par défaut si aucune donnée
+                },
+                fillOpacity: 0.8,
+                stroke: "white", // Couleur bleue foncée pour les contours
+                strokeWidth: 1.2 // Épaisseur des contours
+            }),
+        ]
+    });
+
+    return plot_carte;
+}
+//display(filteredData);
+//display(pays);
+```
+
+
 ```js
 import {createOptionsEChartsFromData} from "./components/histoEcharts.js";
 function createEChartsFromData2(width, option) {
@@ -277,12 +345,26 @@ const option = createOptionsEChartsFromData(data_europe_espece, width, unit_choi
 ```
 
 <div class="grid grid-cols-2">
-<div class="card">${
-    plot_carte
-  }
+<div class="card">
+
+## Production en Europe 
+
+${
+  resize((width) => {
+    if (choix_variable === "Prix") {
+      return createChoroCarte(width); // Appel de createChoroCarte si choix_variable est "Prix"
+    } else {
+      return createPlot_carte(width); // Sinon, appel de createPlot_carte
+    }
+  })
+}
+*Source : Eurostat* 
+
 </div>
 <div class="card">${
     resize((width) => createEChartsFromData2(width, option))
   }
+
+*Source : Eurostat* 
 </div>
 </div>

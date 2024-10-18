@@ -1,5 +1,6 @@
 ---
 theme: dashboard
+title: Accueil
 toc: false
 sql:
   data_europe: ./data/totalaq2a_eur.parquet

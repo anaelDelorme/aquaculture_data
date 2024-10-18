@@ -30,18 +30,43 @@ export function createOptionsEChartsFromData(data, width, unit_choix, titleChart
         return unit_aff;
       } 
     const unit_a_afficher = unit_affiche(unit_choix);
-
+    //  console.log(columns);
     // Combine les colonnes en un tableau pour le dataset ECharts
     const filteredColumns = columns.label.map((label, index) => {
         if (columns.unit[index] === unit_choix) {
           return [label, columns.tot[index]];
         }
-      }).filter(Boolean); // Filtrer les valeurs nulles
-      
+      }).filter(Boolean).sort((a, b) => b[1] - a[1]).slice(0, 10); // Filtrer les valeurs nulles
+    
+        // Ajuster les marges et l'affichage en fonction de la largeur
+        let dynamicLeftMargin;
+        let dynamicbottomMargin = '10%';
+        let rotateLabels = 30;
+        let intervalLabels = 0;
+
+        if (width > 1500) {
+            dynamicLeftMargin = '10%'; // Fixe à 13% si width > 1500px
+        } else if (width <= 700) {
+            dynamicLeftMargin = '25%'; 
+            rotateLabels = 50; 
+            intervalLabels = 0; 
+            dynamicbottomMargin = '20%';
+        } else {
+            rotateLabels = 40; 
+            dynamicbottomMargin = '15%';
+            dynamicLeftMargin = `${Math.max(50, width * 0.13)}px`; // Ajuster dynamiquement pour les tailles moyennes
+        }
     const datasetSource = filteredColumns;
     const option = {        title: {
-        text: titleChart
+        text: titleChart,
+        subtext: '10 principaux pays producteurs' // Ajout du sous-titre
       },
+      grid: {
+        left: dynamicLeftMargin, 
+        right: '10%', 
+        bottom: dynamicbottomMargin, 
+        top: '20%'
+    },
 
         dataset: [
             {
@@ -56,14 +81,17 @@ export function createOptionsEChartsFromData(data, width, unit_choix, titleChart
             }
         ],
         xAxis: {
-            type: 'category',
-            axisLabel: { interval: 0, rotate: 30 } // label sur l'axe X
+          type: 'category',
+          axisLabel: { 
+              interval: intervalLabels, // Intervalle des étiquettes
+              rotate: rotateLabels // Rotation des étiquettes
+          }
         },
         yAxis: {
             type: 'value',
             axisLabel: {
                 formatter: function (value) {
-                  return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); // Ajouter des séparateurs de milliers avec des espaces
+                  return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " " + unit_a_afficher; // Ajouter des séparateurs de milliers avec des espaces
                 }
               }
         },
